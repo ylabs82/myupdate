@@ -1,0 +1,184 @@
+#!/bin/bash
+
+
+# Set style and color variables.
+normal=$(tput sgr0)
+bold=$(tput bold)
+italic=$(tput sitm)
+underline=$(tput smul)
+
+white=$(tput setaf 7)
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+blue=$(tput setaf 4)
+yellow=$(tput setaf 3)
+
+
+# Get the current shell interpreter. I tried to make it work with at least
+# bash, sh and zsh.
+interpreter=$(ps h -p $$ -o args='' | cut -f1 -d' ')
+
+
+function menu() {
+  local menu_title=$1 output=$2
+  shift 2
+
+  echo " ${bold}${blue}$menu_title${normal}"
+  echo
+
+  local options=("$@") current=1 count=$# index=0
+
+  while true; do
+    index=1
+    for o in "${options[@]}"; do
+      if [[ $current == $index ]]; then
+        echo -e " ${bold}${green}$o${normal}"
+      else
+        echo -e " ${normal}$o"
+      fi
+
+      index=$(($index+1))
+    done
+
+    # Save cursor position.
+    tput sc
+
+    # Depending on the shell, read the key.
+    if [[ $interpreter == *"zsh"* ]]; then
+      read -s -r -k key
+    elif [[ $interpreter == *"bash"* ]] || [[ $interpreter == *"sh"* ]]; then
+      read -s -n 1 key
+    else
+      echo "${bold}${red}ERROR: UNSUPPORTED SHELL ${normal}"
+      exit 1
+    fi
+
+    # Check the key pressed. If it's j or k, move the cursor up or down.
+    if [[ $key == "j" ]]; then
+      current=$((current+1))
+      [[ $current -gt $count ]] && current=$count
+    elif [[ $key == "k" ]]; then
+      current=$((current-1))
+      [[ $current -lt 1 ]] && current=1
+    elif [[ ${key} == $'\n' ]] || [[ $key == '' ]]; then
+      break
+    fi
+
+    # Restore cursor position.
+    tput rc
+
+    # Clear all lines.
+    for (( i=0; i < $count; i++ )); do
+      printf "\033[F"
+    done
+  done
+
+  # Depending on the shell, save the selected option.
+  if [[ $interpreter == *"zsh"* ]]; then
+    eval $output="'${options[$current]}'"
+  elif [[ $interpreter == *"bash"* ]] || [[ $interpreter == *"sh"* ]]; then
+    eval $output="'${options[$current-1]}'"
+  else
+    echo "${bold}${red}ERROR: UNSUPPORTED SHELL ${normal}"
+    exit 1
+  fi
+}
+
+
+function update_system() {
+  sudo pacman -Syu
+}
+
+function update_cargo() {
+  cargo install-update -a
+}
+
+function update_npm() {
+  npm update -g
+}
+
+function update_rust() {
+  rustup update
+}
+
+
+tput civis
+clear
+echo
+
+
+menu_options=(
+  " System"
+  " cargo"
+  " npm"
+  " rust"
+  " All"
+  " All but System"
+  " Exit"
+)
+
+  
+menu "SELECT THE DESIRED UPDATE" menu_output "${menu_options[@]}"
+
+
+case $menu_output in
+  " System")
+    clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
+    update_system
+    ;;
+
+  " cargo")
+    clear; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
+    update_cargo
+    ;;
+
+  " npm")
+    clear; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
+    update_npm
+    ;;
+
+  " rust")
+    clear; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
+    update_rust
+    ;;
+
+  " All")
+    clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
+    update_system
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
+    update_cargo
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
+    update_npm
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
+    update_rust
+    tput civis
+    ;;
+
+  " All but System")
+    clear; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
+    update_cargo
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
+    update_npm
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
+    update_rust
+    tput civis
+    ;;
+
+  " Exit")
+    ;;
+esac
+
+
+# Show the cursor.
+tput cnorm
+
