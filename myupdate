@@ -89,6 +89,10 @@ function update_system() {
   sudo pacman -Syu
 }
 
+function update_yay() {
+  yay -Syu
+}
+
 function update_cargo() {
   cargo install-update -a
 }
@@ -109,15 +113,16 @@ echo
 
 menu_options=(
   " System"
+  " AUR (yay)"
   " cargo"
   " npm"
   " rust"
   " All"
-  " All but System"
+  " All but System/AUR"
   " Exit"
 )
 
-  
+
 menu "SELECT THE DESIRED UPDATE" menu_output "${menu_options[@]}"
 
 
@@ -125,6 +130,11 @@ case $menu_output in
   " System")
     clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
     update_system
+    ;;
+
+  " AUR (yay)")
+    clear; echo; echo "${bold}${yellow}Updating AUR (yay)${normal}"; echo
+    update_yay
     ;;
 
   " cargo")
@@ -145,6 +155,10 @@ case $menu_output in
   " All")
     clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
     update_system
+    tput civis
+
+    echo; echo; echo "${bold}${yellow}Updating AUR (yay)${normal}"; echo
+    update_yay
     tput civis
 
     echo; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
@@ -181,4 +195,3 @@ esac
 
 # Show the cursor.
 tput cnorm
-

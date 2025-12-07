@@ -13,28 +13,30 @@ and executes them accordingly.
   (up) keys to select the desired update option.
 - **Supported Updates**:
   - **System**: Updates the system using `pacman`.
+  - **AUR**: Updates AUR packages using `yay`.
   - **Cargo**: Updates all installed `cargo` packages.
   - **NPM**: Updates global `npm` packages.
   - **Rust**: Updates `rust` via `rustup`.
 - **Batch Updates**:
-  - **All**: Updates the system, `cargo`, `npm`, and `rust`.
+  - **All**: Updates the system, `aur`, `cargo`, `npm`, and `rust`.
   - **All but System**: Updates `cargo`, `npm`, and `rust` (skips system
-    update).
+    update and AUR update).
 - **Cross-Shell Compatibility**: Works with `bash`, `sh`, and `zsh`.
 
 ---
 
 ## My Menu Options
 
-| Option            | Description                                                            |
-|-------------------|------------------------------------------------------------------------|
-| **System**        | Updates the system using `sudo pacman -Syu`.                           |
-| **Cargo**         | Updates all installed `cargo` packages using `cargo install-update -a`.|
-| **NPM**           | Updates global `npm` packages using `npm update -g`.                   |
-| **Rust**          | Updates `rust` using `rustup update`.                                  |
-| **All**           | Updates the system, `cargo`, `npm`, and `rust`.                        |
-| **All but System**| Updates `cargo`, `npm`, and `rust` (skips system update).              |
-| **Exit**          | Exits the script.                                                      |
+| Option            | Description                                                             |
+|-------------------|-------------------------------------------------------------------------|
+| **System**        | Updates the system using `sudo pacman -Syu`.                            |
+| **AUR**           | Updates AUR packages using `yay -Syu`.                                  |
+| **Cargo**         | Updates all installed `cargo` packages using `cargo install-update -a`. |
+| **NPM**           | Updates global `npm` packages using `npm update -g`.                    |
+| **Rust**          | Updates `rust` using `rustup update`.                                   |
+| **All**           | Updates the system, `aur`, `cargo`, `npm`, and `rust`.                  |
+| **All but System**| Updates `cargo`, `npm`, and `rust` (skips system update and AUR update).|
+| **Exit**          | Exits the script.                                                       |
 
 ---
 
@@ -42,6 +44,7 @@ and executes them accordingly.
 
 - **Bash, sh, or zsh**: The script is compatible with these shell interpreters.
 - **pacman**: For system updates (Arch Linux-based systems).
+- **yay**: For AUR updates (Arch Linux-based systems).
 - **cargo**: For Rust package management.
 - **npm**: For Node.js package management.
 - **rustup**: For Rust toolchain management.
@@ -51,7 +54,7 @@ and executes them accordingly.
 ## Customization
 
 The script is currently written with my specific needs in mind, focusing on
-updating system packages (via `pacman`), `cargo`, `npm` and `rust`. However,
+updating system packages (via `pacman`), `aur`, `cargo`, `npm` and `rust`. However,
 it is designed to be easily adaptable to other use cases.
 
 ---
@@ -68,7 +71,7 @@ it is designed to be easily adaptable to other use cases.
 
 ## License
 
-This script is licensed under the MIT License. 
+This script is licensed under the MIT License.
 
 ```text
 The MIT License (MIT)
@@ -92,4 +95,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
