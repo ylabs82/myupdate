@@ -27,16 +27,16 @@ and executes them accordingly.
 
 ## My Menu Options
 
-| Option            | Description                                                             |
-|-------------------|-------------------------------------------------------------------------|
-| **System**        | Updates the system using `sudo pacman -Syu`.                            |
-| **AUR**           | Updates AUR packages using `yay -Syu`.                                  |
-| **Cargo**         | Updates all installed `cargo` packages using `cargo install-update -a`. |
-| **NPM**           | Updates global `npm` packages using `npm update -g`.                    |
-| **Rust**          | Updates `rust` using `rustup update`.                                   |
-| **All**           | Updates the system, `aur`, `cargo`, `npm`, and `rust`.                  |
-| **All but System**| Updates `cargo`, `npm`, and `rust` (skips system update and AUR update).|
-| **Exit**          | Exits the script.                                                       |
+| Option                | Description                                                             |
+|-----------------------|-------------------------------------------------------------------------|
+| **All**               | Updates the system, `aur`, `cargo`, `npm`, and `rust`.                  |
+| **All but System/AUR**| Updates `cargo`, `npm`, and `rust` (skips system update and AUR update).|
+| **System**            | Updates the system using `sudo pacman -Syu`.                            |
+| **AUR**               | Updates AUR packages using `yay -Syu`.                                  |
+| **Cargo**             | Updates all installed `cargo` packages using `cargo install-update -a`. |
+| **NPM**               | Updates global `npm` packages using `npm update -g`.                    |
+| **Rust**              | Updates `rust` using `rustup update`.                                   |
+| **Exit**              | Exits the script.                                                       |
 
 ---
 

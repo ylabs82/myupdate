@@ -112,13 +112,13 @@ echo
 
 
 menu_options=(
+  " All"
+  " All but System/AUR"
   " System"
   " AUR (yay)"
   " cargo"
   " npm"
   " rust"
-  " All"
-  " All but System/AUR"
   " Exit"
 )
 
@@ -174,7 +174,7 @@ case $menu_output in
     tput civis
     ;;
 
-  " All but System")
+  " All but System/AUR")
     clear; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
     update_cargo
     tput civis
