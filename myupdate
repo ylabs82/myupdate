@@ -1,197 +1,284 @@
 #!/bin/bash
 
 
-# Set style and color variables.
+# ─────────────────────────────────────────────────────────────────────────────
+# Style & color variables
+# ─────────────────────────────────────────────────────────────────────────────
+
 normal=$(tput sgr0)
 bold=$(tput bold)
-italic=$(tput sitm)
-underline=$(tput smul)
+dim=$(tput dim)
 
-white=$(tput setaf 7)
 red=$(tput setaf 1)
 green=$(tput setaf 2)
-blue=$(tput setaf 4)
 yellow=$(tput setaf 3)
+blue=$(tput setaf 4)
+cyan=$(tput setaf 6)
+
+# Terminal width (capped at 80 for readability)
+COLS=$(tput cols)
+[[ $COLS -gt 80 ]] && COLS=80
+
+# Pre-compute a full-width separator string (avoids rebuilding it on each call)
+_SEP=""
+for (( _i=0; _i < COLS - 2; _i++ )); do _SEP+="─"; done
+unset _i
 
 
-# Get the current shell interpreter. I tried to make it work with at least
-# bash, sh and zsh.
+# ─────────────────────────────────────────────────────────────────────────────
+# Get the current shell interpreter (supports bash, sh, zsh)
+# ─────────────────────────────────────────────────────────────────────────────
+
 interpreter=$(ps h -p $$ -o args='' | cut -f1 -d' ')
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UI helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Prints a full-width horizontal rule
+draw_line() {
+  local color="${1:-${dim}${blue}}"
+  printf " ${color}%s${normal}\n" "$_SEP"
+}
+
+# Prints a centered title surrounded by horizontal rules: ─── TITLE ───
+print_header() {
+  local title_display=" $1 "
+  local title_len=${#title_display}
+  local avail=$(( COLS - 2 ))           # subtract 1-char left margin
+  local left=$(( (avail - title_len) / 2 ))
+  local right=$(( avail - title_len - left ))
+  [[ $left  -lt 0 ]] && left=0
+  [[ $right -lt 0 ]] && right=0
+  echo
+  printf " ${bold}${blue}%s${cyan}%s${blue}%s${normal}\n" \
+    "${_SEP:0:$left}" "$title_display" "${_SEP:0:$right}"
+  echo
+}
+
+# Prints a labeled section header with a divider below
+print_section() {
+  echo
+  printf " ${bold}${yellow}▶  %s${normal}\n" "$1"
+  draw_line "${dim}${blue}"
+  echo
+}
+
+# Prints a ✓ or ✗ result line based on exit code
+print_result() {
+  local code=$1 label="$2"
+  echo
+  if [[ $code -eq 0 ]]; then
+    printf " ${bold}${green}✓  %s — done${normal}\n" "$label"
+  else
+    printf " ${bold}${red}✗  %s — finished with errors (exit code: %d)${normal}\n" \
+      "$label" "$code"
+  fi
+}
+
+# Runs an update function, prints a section header and result indicator
+run_update() {
+  local label="$1" func="$2"
+  print_section "$label"
+  $func
+  local code=$?
+  print_result $code "$label"
+  tput civis
+  return $code
+}
+
+# Prints a summary table for a given list of result keys
+print_summary() {
+  local keys=("$@")
+  echo
+  draw_line "${bold}${blue}"
+  printf "\n ${bold}Summary${normal}\n\n"
+  for key in "${keys[@]}"; do
+    if [[ ${results[$key]} -eq 0 ]]; then
+      printf "   ${bold}${green}✓${normal}  %s\n" "$key"
+    else
+      printf "   ${bold}${red}✗${normal}  %s\n" "$key"
+    fi
+  done
+  echo
+  draw_line "${bold}${blue}"
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Interactive menu
+# ─────────────────────────────────────────────────────────────────────────────
 
 function menu() {
   local menu_title=$1 output=$2
   shift 2
 
-  echo " ${bold}${blue}$menu_title${normal}"
-  echo
-
   local options=("$@") current=1 count=$# index=0
+
+  printf " ${bold}${blue}%s${normal}\n" "$menu_title"
+  printf " ${dim}↑↓ / jk  ·  Enter to select  ·  q to quit${normal}\n"
+  echo
 
   while true; do
     index=1
     for o in "${options[@]}"; do
       if [[ $current == $index ]]; then
-        echo -e " ${bold}${green}$o${normal}"
+        printf " ${bold}${green} ▶  %s${normal}\n" "$o"
       else
-        echo -e " ${normal}$o"
+        printf " ${dim}    %s${normal}\n" "$o"
       fi
-
-      index=$(($index+1))
+      index=$(( index + 1 ))
     done
 
     # Save cursor position.
     tput sc
 
-    # Depending on the shell, read the key.
+    # Read a key, with escape-sequence handling for arrow keys.
     if [[ $interpreter == *"zsh"* ]]; then
-      read -s -r -k key
+      read -s -r -k 1 key
+      if [[ $key == $'\e' ]]; then
+        read -s -r -k 2 -t 0.1 key_rest
+        key="${key}${key_rest}"
+      fi
     elif [[ $interpreter == *"bash"* ]] || [[ $interpreter == *"sh"* ]]; then
       read -s -n 1 key
+      if [[ $key == $'\e' ]]; then
+        read -s -n 2 -t 0.1 key_rest
+        key="${key}${key_rest}"
+      fi
     else
-      echo "${bold}${red}ERROR: UNSUPPORTED SHELL ${normal}"
-      exit 1
+      printf "${bold}${red} ERROR: UNSUPPORTED SHELL${normal}\n"
+      tput cnorm; exit 1
     fi
 
-    # Check the key pressed. If it's j or k, move the cursor up or down.
-    if [[ $key == "j" ]]; then
-      current=$((current+1))
-      [[ $current -gt $count ]] && current=$count
-    elif [[ $key == "k" ]]; then
-      current=$((current-1))
-      [[ $current -lt 1 ]] && current=1
-    elif [[ ${key} == $'\n' ]] || [[ $key == '' ]]; then
-      break
-    fi
+    # Navigate: j / ↓ move down; k / ↑ move up; q quits; Enter confirms.
+    case "$key" in
+      j|$'\e[B')        # j or Down arrow — wrap around at bottom
+        current=$(( current + 1 ))
+        [[ $current -gt $count ]] && current=1
+        ;;
+      k|$'\e[A')        # k or Up arrow — wrap around at top
+        current=$(( current - 1 ))
+        [[ $current -lt 1 ]] && current=$count
+        ;;
+      q|Q)              # quit: jump to the last option ("Exit")
+        current=$count
+        break
+        ;;
+      $'\n'|'')
+        break
+        ;;
+    esac
 
-    # Restore cursor position.
+    # Restore cursor position and redraw options.
     tput rc
-
-    # Clear all lines.
-    for (( i=0; i < $count; i++ )); do
+    for (( i=0; i < count; i++ )); do
       printf "\033[F"
     done
   done
 
-  # Depending on the shell, save the selected option.
+  # Store the selected option in the caller's variable.
   if [[ $interpreter == *"zsh"* ]]; then
     eval $output="'${options[$current]}'"
   elif [[ $interpreter == *"bash"* ]] || [[ $interpreter == *"sh"* ]]; then
     eval $output="'${options[$current-1]}'"
-  else
-    echo "${bold}${red}ERROR: UNSUPPORTED SHELL ${normal}"
-    exit 1
   fi
 }
 
 
-function update_system() {
-  sudo pacman -Syu
-}
+# ─────────────────────────────────────────────────────────────────────────────
+# Update functions
+# ─────────────────────────────────────────────────────────────────────────────
 
-function update_yay() {
-  yay -Syu
-}
+function update_system() { sudo pacman -Syu; }
+function update_yay()    { yay -Syu; }
+function update_cargo()  { cargo install-update -a; }
+function update_npm()    { npm update -g; }
+function update_rust()   { rustup update; }
 
-function update_cargo() {
-  cargo install-update -a
-}
 
-function update_npm() {
-  npm update -g
-}
-
-function update_rust() {
-  rustup update
-}
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Main
+# ─────────────────────────────────────────────────────────────────────────────
 
 tput civis
 clear
-echo
 
+print_header "MYUPDATE — SYSTEM UPDATE MANAGER"
 
 menu_options=(
-  " All"
-  " All but System/AUR"
-  " System"
-  " AUR (yay)"
-  " cargo"
-  " npm"
-  " rust"
-  " Exit"
+  "All"
+  "All but System/AUR"
+  "System"
+  "AUR (yay)"
+  "cargo"
+  "npm"
+  "rust"
+  "Exit"
 )
 
+menu "What would you like to update?" menu_output "${menu_options[@]}"
 
-menu "SELECT THE DESIRED UPDATE" menu_output "${menu_options[@]}"
 
+declare -A results
 
 case $menu_output in
-  " System")
-    clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
-    update_system
+  "System")
+    clear
+    print_header "SYSTEM UPDATE"
+    run_update "System (pacman)" update_system
     ;;
 
-  " AUR (yay)")
-    clear; echo; echo "${bold}${yellow}Updating AUR (yay)${normal}"; echo
-    update_yay
+  "AUR (yay)")
+    clear
+    print_header "AUR UPDATE"
+    run_update "AUR (yay)" update_yay
     ;;
 
-  " cargo")
-    clear; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
-    update_cargo
+  "cargo")
+    clear
+    print_header "CARGO UPDATE"
+    run_update "cargo packages" update_cargo
     ;;
 
-  " npm")
-    clear; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
-    update_npm
+  "npm")
+    clear
+    print_header "NPM UPDATE"
+    run_update "npm global packages" update_npm
     ;;
 
-  " rust")
-    clear; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
-    update_rust
+  "rust")
+    clear
+    print_header "RUST UPDATE"
+    run_update "Rust toolchain" update_rust
     ;;
 
-  " All")
-    clear; echo; echo "${bold}${yellow}Updating system${normal}"; echo
-    update_system
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating AUR (yay)${normal}"; echo
-    update_yay
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
-    update_cargo
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
-    update_npm
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
-    update_rust
-    tput civis
+  "All")
+    clear
+    print_header "FULL SYSTEM UPDATE"
+    run_update "System (pacman)"     update_system;  results[system]=$?
+    run_update "AUR (yay)"           update_yay;     results[yay]=$?
+    run_update "cargo packages"      update_cargo;   results[cargo]=$?
+    run_update "npm global packages" update_npm;     results[npm]=$?
+    run_update "Rust toolchain"      update_rust;    results[rust]=$?
+    print_summary system yay cargo npm rust
     ;;
 
-  " All but System/AUR")
-    clear; echo; echo "${bold}${yellow}Updating cargo${normal}"; echo
-    update_cargo
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating npm${normal}"; echo
-    update_npm
-    tput civis
-
-    echo; echo; echo "${bold}${yellow}Updating rust${normal}"; echo
-    update_rust
-    tput civis
+  "All but System/AUR")
+    clear
+    print_header "PACKAGE MANAGER UPDATE"
+    run_update "cargo packages"      update_cargo;  results[cargo]=$?
+    run_update "npm global packages" update_npm;    results[npm]=$?
+    run_update "Rust toolchain"      update_rust;   results[rust]=$?
+    print_summary cargo npm rust
     ;;
 
-  " Exit")
+  "Exit")
+    clear
     ;;
 esac
 
 
-# Show the cursor.
+echo
 tput cnorm

@@ -1,16 +1,21 @@
 # System Update Script
 
-This is a Bash script designed to simplify the process of updating various
-components of your system, including the system itself, `cargo`, `npm`, and
-`rust`. The script provides an interactive menu to select the desired updates
-and executes them accordingly.
+A Bash script designed to simplify the process of updating various components
+of your system, including the system itself, `cargo`, `npm`, and `rust`. It
+provides a visual interactive menu to select the desired updates and executes
+them with clear progress feedback.
 
 ---
 
 ## Features
 
-- **Interactive Menu**: Navigate through the menu using `j` (down) and `k`
-  (up) keys to select the desired update option.
+- **Visual Interactive Menu**: Navigate with `j`/`k` or the ↑/↓ arrow keys.
+  The selected option is highlighted with a `▶` pointer; unselected options
+  are dimmed. Press `q` at any time to quit without selecting.
+- **Centered banner header** and `─────` section dividers for a clean look.
+- **Per-step result indicators**: each update step reports `✓ done` (green) or
+  `✗ finished with errors (exit code: N)` (red) when it completes.
+- **Summary panel** after batch runs listing the pass/fail status of every step.
 - **Supported Updates**:
   - **System**: Updates the system using `pacman`.
   - **AUR**: Updates AUR packages using `yay`.
@@ -19,28 +24,39 @@ and executes them accordingly.
   - **Rust**: Updates `rust` via `rustup`.
 - **Batch Updates**:
   - **All**: Updates the system, `aur`, `cargo`, `npm`, and `rust`.
-  - **All but System**: Updates `cargo`, `npm`, and `rust` (skips system
-    update and AUR update).
+  - **All but System/AUR**: Updates `cargo`, `npm`, and `rust` (skips system
+    and AUR updates).
 - **Cross-Shell Compatibility**: Works with `bash`, `sh`, and `zsh`.
 
 ---
 
-## My Menu Options
+## Navigation
+
+| Key              | Action                        |
+|------------------|-------------------------------|
+| `j` or `↓`       | Move selection down (wraps)   |
+| `k` or `↑`       | Move selection up (wraps)     |
+| `Enter`          | Confirm selection             |
+| `q` / `Q`        | Quit                          |
+
+---
+
+## Menu Options
 
 | Option                | Description                                                             |
 |-----------------------|-------------------------------------------------------------------------|
 | **All**               | Updates the system, `aur`, `cargo`, `npm`, and `rust`.                  |
 | **All but System/AUR**| Updates `cargo`, `npm`, and `rust` (skips system update and AUR update).|
 | **System**            | Updates the system using `sudo pacman -Syu`.                            |
-| **AUR**               | Updates AUR packages using `yay -Syu`.                                  |
-| **Cargo**             | Updates all installed `cargo` packages using `cargo install-update -a`. |
-| **NPM**               | Updates global `npm` packages using `npm update -g`.                    |
-| **Rust**              | Updates `rust` using `rustup update`.                                   |
+| **AUR (yay)**         | Updates AUR packages using `yay -Syu`.                                  |
+| **cargo**             | Updates all installed `cargo` packages using `cargo install-update -a`. |
+| **npm**               | Updates global `npm` packages using `npm update -g`.                    |
+| **rust**              | Updates `rust` using `rustup update`.                                   |
 | **Exit**              | Exits the script.                                                       |
 
 ---
 
-## My Requirements
+## Requirements
 
 - **Bash, sh, or zsh**: The script is compatible with these shell interpreters.
 - **pacman**: For system updates (Arch Linux-based systems).
@@ -53,9 +69,11 @@ and executes them accordingly.
 
 ## Customization
 
-The script is currently written with my specific needs in mind, focusing on
-updating system packages (via `pacman`), `aur`, `cargo`, `npm` and `rust`. However,
-it is designed to be easily adaptable to other use cases.
+The script is written with my specific needs in mind, focusing on updating
+system packages (via `pacman`), `aur`, `cargo`, `npm`, and `rust`. It is
+designed to be easily adaptable to other use cases — add a new
+`update_<tool>()` function and a corresponding entry in `menu_options` and the
+`case` block.
 
 ---
 
@@ -75,7 +93,7 @@ This script is licensed under the MIT License.
 
 ```text
 The MIT License (MIT)
-Copyright (c) 2025 Yago Mouriño Mendaña
+Copyright (c) 2025-2026, Yago Mouriño Mendaña
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the “Software”), to deal in
