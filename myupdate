@@ -13,7 +13,32 @@ red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
 blue=$(tput setaf 4)
+magenta=$(tput setaf 5)
 cyan=$(tput setaf 6)
+white=$(tput setaf 7)
+
+top_left="┌"
+top_right="┐"
+bottom_left="└"
+bottom_right="┘"
+vertical="│"
+horizontal="─"
+intersection_left="├"
+intersection_right="┤"
+
+light_top_left="╭"
+light_top_right="╮"
+light_bottom_left="╰"
+light_bottom_right="╯"
+light_vertical="│"
+light_horizontal="─"
+
+arrow_right="→"
+arrow_up="↑"
+arrow_down="↓"
+check="✓"
+cross_mark="✗"
+menu_arrow="▶"
 
 # Terminal width (capped at 80 for readability)
 COLS=$(tput cols)
@@ -36,48 +61,83 @@ interpreter=$(ps h -p $$ -o args='' | cut -f1 -d' ')
 # UI helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Prints a full-width horizontal rule
-draw_line() {
-  local color="${1:-${dim}${blue}}"
-  printf " ${color}%s${normal}\n" "$_SEP"
-}
-
-# Prints a centered title surrounded by horizontal rules: ─── TITLE ───
 print_header() {
-  local title_display=" $1 "
-  local title_len=${#title_display}
-  local avail=$(( COLS - 2 ))           # subtract 1-char left margin
-  local left=$(( (avail - title_len) / 2 ))
-  local right=$(( avail - title_len - left ))
-  [[ $left  -lt 0 ]] && left=0
-  [[ $right -lt 0 ]] && right=0
+  local title=" $1 "
+  local len=${#title}
+  local width=$(( COLS - 2 ))
+  local padding_left=$(( (width - len) / 2 ))
+  local padding_right=$((( (width - len) / 2 ) - (( (width - len) % 2 )) ))
+
+  # If (width - len) % 2 is not zero, we need to add an extra space to the right padding
+  if (( (width - len) % 2 != 0 )); then
+    padding_right=$(( padding_right + 1 ))
+  else
+    padding_right=$(( padding_right - 1 ))
+  fi
+
   echo
-  printf " ${bold}${blue}%s${cyan}%s${blue}%s${normal}\n" \
-    "${_SEP:0:$left}" "$title_display" "${_SEP:0:$right}"
+  printf "${bold}${blue}${top_left}"
+  for ((i=0; i<width-1; i++)); do printf "${horizontal}"; done
+  printf "${top_right}${normal}\n"
+
+  printf "${bold}${blue}${vertical}${normal}"
+  printf "%${padding_left}s${bold}${cyan}%s${normal}%${padding_right}s" "" "$title"
+  printf "${bold}${blue}${vertical}${normal}\n"
+
+  printf "${bold}${blue}${bottom_left}"
+  for ((i=0; i<width-1; i++)); do printf "${horizontal}"; done
+  printf "${bottom_right}${normal}\n"
   echo
 }
 
-# Prints a labeled section header with a divider below
+print_banner() {
+  local width=$(( COLS - 2 ))
+  local title=" S Y S T E M   U P D A T E   M A N A G E R "
+  local title_len=${#title}
+  local padding=$(( (width - title_len) / 2 ))
+
+  echo
+  printf "${bold}${blue}${top_left}"
+  for ((i=0; i<width-1; i++)); do printf "${horizontal}"; done
+  printf "${top_right}${normal}\n"
+
+  printf "${bold}${blue}${vertical}${normal}"
+  printf "%${padding}s${bold}${magenta}%s${normal}" "" "$title"
+  printf "%$((width - padding - title_len - 1))s${bold}${blue}${vertical}${normal}\n" ""
+
+  printf "${bold}${blue}${bottom_left}"
+  for ((i=0; i<width-1; i++)); do printf "${horizontal}"; done
+  printf "${bottom_right}${normal}\n"
+  echo
+}
+
+print_footer() {
+  echo
+  printf " ${dim}%s  %s  Updated: %s | Terminal: %s${normal}\n" \
+    "$light_vertical" "$light_vertical" "$(date '+%Y-%m-%d %H:%M')" "$TERM"
+  echo
+}
+
 print_section() {
   echo
-  printf " ${bold}${yellow}▶  %s${normal}\n" "$1"
-  draw_line "${dim}${blue}"
+  printf "   ${bold}${yellow}${arrow_right}${normal}  ${bold}${white}%s${normal}\n" "$1"
+  printf " ${dim}${intersection_left}"
+  for ((i=0; i<COLS-4; i++)); do printf "${horizontal}"; done
+  printf "${normal}\n"
   echo
 }
 
-# Prints a ✓ or ✗ result line based on exit code
 print_result() {
   local code=$1 label="$2"
   echo
   if [[ $code -eq 0 ]]; then
-    printf " ${bold}${green}✓  %s — done${normal}\n" "$label"
+    printf " ${bold}${green}${check}${normal}  ${bold}${white}%s${normal} — ${bold}${green}done${normal}\n" "$label"
   else
-    printf " ${bold}${red}✗  %s — finished with errors (exit code: %d)${normal}\n" \
+    printf " ${bold}${red}${cross_mark}${normal}  ${bold}${white}%s${normal} — ${bold}${red}finished with errors (exit code: %d)${normal}\n" \
       "$label" "$code"
   fi
 }
 
-# Runs an update function, prints a section header and result indicator
 run_update() {
   local label="$1" func="$2"
   print_section "$label"
@@ -88,21 +148,42 @@ run_update() {
   return $code
 }
 
-# Prints a summary table for a given list of result keys
 print_summary() {
   local keys=("$@")
+  local width=$((COLS - 3))
+  local inner_width=$((COLS - 3))
   echo
-  draw_line "${bold}${blue}"
-  printf "\n ${bold}Summary${normal}\n\n"
+
+  printf "${bold}${blue}${top_left}"
+  for ((i=0; i<width; i++)); do printf "${horizontal}"; done
+  printf "${top_right}${normal}\n"
+
+  printf "${bold}${blue}${vertical}${normal}  ${bold}${white}Summary${normal}"
+  printf "%$((COLS-12))s${bold}${blue}${vertical}${normal}\n" ""
+
+  printf "${bold}${blue}${intersection_left}"
+  for ((i=0; i<inner_width; i++)); do printf "${horizontal}"; done
+  printf "${intersection_right}${normal}\n"
+
   for key in "${keys[@]}"; do
     if [[ ${results[$key]} -eq 0 ]]; then
-      printf "   ${bold}${green}✓${normal}  %s\n" "$key"
+      printf "${bold}${blue}${vertical}${normal}  ${bold}${green}${check}${normal}  ${bold}${white}%s${normal}" "$key"
+      printf "%$((COLS-${#key}-8))s${bold}${blue}${vertical}${normal}\n" ""
     else
-      printf "   ${bold}${red}✗${normal}  %s\n" "$key"
+      printf "${bold}${blue}${vertical}${normal}  ${bold}${red}${cross_mark}${normal}  ${bold}${white}%s${normal}" "$key"
+      printf "%$((COLS-${#key}-8))s${bold}${blue}${vertical}${normal}\n" ""
     fi
   done
-  echo
-  draw_line "${bold}${blue}"
+
+  printf "${bold}${blue}${intersection_left}"
+  for ((i=0; i<inner_width; i++)); do printf "${horizontal}"; done
+  printf "${intersection_right}${normal}\n"
+
+  printf "${bold}${blue}${vertical}$(printf '%*s' $((COLS-3)) '')${vertical}${normal}\n"
+
+  printf "${bold}${blue}${bottom_left}"
+  for ((i=0; i<inner_width; i++)); do printf "${horizontal}"; done
+  printf "${bottom_right}${normal}\n"
 }
 
 
@@ -114,27 +195,41 @@ function menu() {
   local menu_title=$1 output=$2
   shift 2
 
-  local options=("$@") current=1 count=$# index=0
+  local options=("$@") current=1 count=$#
 
-  printf " ${bold}${blue}%s${normal}\n" "$menu_title"
-  printf " ${dim}↑↓ / jk  ·  Enter to select  ·  q to quit${normal}\n"
+  printf "${bold}${cyan}%s${normal}\n" "$menu_title"
+  printf " ${dim}${arrow_up}${arrow_down} / jk  ·  Enter to select  ·  q to quit${normal}\n"
   echo
 
-  while true; do
-    index=1
+  local menu_box_lines=$(( count + 2 ))
+  local header_lines=3
+
+  draw_menu_box() {
+    printf "${bold}${blue}${light_top_left}"
+    for ((i=0; i<COLS-3; i++)); do printf "${light_horizontal}"; done
+    printf "${light_top_right}${normal}\n"
+
+    local idx=1
     for o in "${options[@]}"; do
-      if [[ $current == $index ]]; then
-        printf " ${bold}${green} ▶  %s${normal}\n" "$o"
-      else
-        printf " ${dim}    %s${normal}\n" "$o"
+      local prefix="    "
+      local suffix=""
+      if [[ $current == $idx ]]; then
+        prefix=" ${menu_arrow}  "
+        suffix="${normal}"
       fi
-      index=$(( index + 1 ))
+      printf "${bold}${blue}${vertical}${normal}${green}${prefix}${normal}%-*s${suffix}${bold}${blue}${vertical}${normal}\n" $((COLS-4-3)) "$o"
+      idx=$(( idx + 1 ))
     done
 
-    # Save cursor position.
-    tput sc
+    printf "${bold}${blue}${light_bottom_left}"
+    for ((i=0; i<COLS-3; i++)); do printf "${light_horizontal}"; done
+    printf "${light_bottom_right}${normal}\n"
+  }
 
-    # Read a key, with escape-sequence handling for arrow keys.
+  draw_menu_box
+  tput sc
+
+  while true; do
     if [[ $interpreter == *"zsh"* ]]; then
       read -s -r -k 1 key
       if [[ $key == $'\e' ]]; then
@@ -152,17 +247,16 @@ function menu() {
       tput cnorm; exit 1
     fi
 
-    # Navigate: j / ↓ move down; k / ↑ move up; q quits; Enter confirms.
     case "$key" in
-      j|$'\e[B')        # j or Down arrow — wrap around at bottom
+      j|$'\e[B')
         current=$(( current + 1 ))
         [[ $current -gt $count ]] && current=1
         ;;
-      k|$'\e[A')        # k or Up arrow — wrap around at top
+      k|$'\e[A')
         current=$(( current - 1 ))
         [[ $current -lt 1 ]] && current=$count
         ;;
-      q|Q)              # quit: jump to the last option ("Exit")
+      q|Q)
         current=$count
         break
         ;;
@@ -171,14 +265,14 @@ function menu() {
         ;;
     esac
 
-    # Restore cursor position and redraw options.
     tput rc
-    for (( i=0; i < count; i++ )); do
-      printf "\033[F"
+    for (( i=0; i < menu_box_lines; i++ )); do
+      printf "\033[K\033[F"
     done
+    draw_menu_box
+    tput sc
   done
 
-  # Store the selected option in the caller's variable.
   if [[ $interpreter == *"zsh"* ]]; then
     eval $output="'${options[$current]}'"
   elif [[ $interpreter == *"bash"* ]] || [[ $interpreter == *"sh"* ]]; then
@@ -205,77 +299,86 @@ function update_rust()   { rustup update; }
 tput civis
 clear
 
-print_header "MYUPDATE — SYSTEM UPDATE MANAGER"
+print_banner
 
 menu_options=(
-  "All"
+  "All Updates"
   "All but System/AUR"
-  "System"
+  "System (pacman)"
   "AUR (yay)"
-  "cargo"
-  "npm"
-  "rust"
+  "cargo packages"
+  "npm global packages"
+  "Rust toolchain"
   "Exit"
 )
 
-menu "What would you like to update?" menu_output "${menu_options[@]}"
+menu " ─ Choose an option ─ " menu_output "${menu_options[@]}"
 
 
 declare -A results
 
 case $menu_output in
-  "System")
+  "System (pacman)")
     clear
     print_header "SYSTEM UPDATE"
     run_update "System (pacman)" update_system
+    print_footer
     ;;
 
   "AUR (yay)")
     clear
-    print_header "AUR UPDATE"
+    print_header "AUR  UPDATE"
     run_update "AUR (yay)" update_yay
+    print_footer
     ;;
 
-  "cargo")
+  "cargo packages")
     clear
-    print_header "CARGO UPDATE"
+    print_header "CARGO  UPDATE"
     run_update "cargo packages" update_cargo
+    print_footer
     ;;
 
-  "npm")
+  "npm global packages")
     clear
-    print_header "NPM UPDATE"
+    print_header "NPM  UPDATE"
     run_update "npm global packages" update_npm
+    print_footer
     ;;
 
-  "rust")
+  "Rust toolchain")
     clear
     print_header "RUST UPDATE"
     run_update "Rust toolchain" update_rust
+    print_footer
     ;;
 
-  "All")
+  "All Updates")
     clear
-    print_header "FULL SYSTEM UPDATE"
+    print_header "FULL  SYSTEM UPDATE"
     run_update "System (pacman)"     update_system;  results[system]=$?
     run_update "AUR (yay)"           update_yay;     results[yay]=$?
     run_update "cargo packages"      update_cargo;   results[cargo]=$?
     run_update "npm global packages" update_npm;     results[npm]=$?
     run_update "Rust toolchain"      update_rust;    results[rust]=$?
     print_summary system yay cargo npm rust
+    print_footer
     ;;
 
   "All but System/AUR")
     clear
-    print_header "PACKAGE MANAGER UPDATE"
+    print_header "CUSTOM  PACKAGES UPDATE"
     run_update "cargo packages"      update_cargo;  results[cargo]=$?
     run_update "npm global packages" update_npm;    results[npm]=$?
     run_update "Rust toolchain"      update_rust;   results[rust]=$?
     print_summary cargo npm rust
+    print_footer
     ;;
 
   "Exit")
     clear
+    printf "\n${bold}${cyan}Thanks for using MyUpdate!${normal}\n"
+    printf "${dim}See you soon...${normal}\n\n"
     ;;
 esac
 

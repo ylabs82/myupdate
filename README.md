@@ -1,7 +1,7 @@
-# System Update Script
+# MyUpdate - System Update Manager
 
 A Bash script designed to simplify the process of updating various components
-of your system, including the system itself, `cargo`, `npm`, and `rust`. It
+of your system, including the system itself, AUR, `cargo`, `npm`, and `rust`. It
 provides a visual interactive menu to select the desired updates and executes
 them with clear progress feedback.
 
@@ -12,10 +12,15 @@ them with clear progress feedback.
 - **Visual Interactive Menu**: Navigate with `j`/`k` or the ↑/↓ arrow keys.
   The selected option is highlighted with a `▶` pointer; unselected options
   are dimmed. Press `q` at any time to quit without selecting.
-- **Centered banner header** and `─────` section dividers for a clean look.
+- **Box-drawing characters**: Uses Unicode box-drawing characters (┌─┐│└┘) for
+  a clean, professional look.
+- **Centered banner header** with title.
+- **Section dividers** with arrow indicators (→) for a clean look.
 - **Per-step result indicators**: each update step reports `✓ done` (green) or
   `✗ finished with errors (exit code: N)` (red) when it completes.
-- **Summary panel** after batch runs listing the pass/fail status of every step.
+- **Summary panel** after batch runs with a bordered table listing the pass/fail
+  status of every step.
+- **Footer** showing update timestamp and terminal info.
 - **Supported Updates**:
   - **System**: Updates the system using `pacman`.
   - **AUR**: Updates AUR packages using `yay`.
@@ -23,7 +28,7 @@ them with clear progress feedback.
   - **NPM**: Updates global `npm` packages.
   - **Rust**: Updates `rust` via `rustup`.
 - **Batch Updates**:
-  - **All**: Updates the system, `aur`, `cargo`, `npm`, and `rust`.
+  - **All Updates**: Updates the system, AUR, `cargo`, `npm`, and `rust`.
   - **All but System/AUR**: Updates `cargo`, `npm`, and `rust` (skips system
     and AUR updates).
 - **Cross-Shell Compatibility**: Works with `bash`, `sh`, and `zsh`.
@@ -45,13 +50,13 @@ them with clear progress feedback.
 
 | Option                | Description                                                             |
 |-----------------------|-------------------------------------------------------------------------|
-| **All**               | Updates the system, `aur`, `cargo`, `npm`, and `rust`.                  |
+| **All Updates**       | Updates the system, AUR, `cargo`, `npm`, and `rust`.                    |
 | **All but System/AUR**| Updates `cargo`, `npm`, and `rust` (skips system update and AUR update).|
-| **System**            | Updates the system using `sudo pacman -Syu`.                            |
+| **System (pacman)**   | Updates the system using `sudo pacman -Syu`.                            |
 | **AUR (yay)**         | Updates AUR packages using `yay -Syu`.                                  |
-| **cargo**             | Updates all installed `cargo` packages using `cargo install-update -a`. |
-| **npm**               | Updates global `npm` packages using `npm update -g`.                    |
-| **rust**              | Updates `rust` using `rustup update`.                                   |
+| **cargo packages**    | Updates all installed `cargo` packages using `cargo install-update -a`. |
+| **npm global packages**| Updates global `npm` packages using `npm update -g`.                   |
+| **Rust toolchain**    | Updates `rust` using `rustup update`.                                   |
 | **Exit**              | Exits the script.                                                       |
 
 ---
